@@ -1,14 +1,14 @@
 ---
 layout: index
-title: Alfredo Torre 
-tagline: aka sentenza/skydiamond
+title: John Doe
+tagline: aka nickname
 ---
 {% include JB/setup %}
 
 
-<!-- This is not shown on the index template page! -->
+<!-- Change the "about information" contained in /_includes/themes/bootstrap/index.html  -->
 
-Here's a sample "posts list".
+<h3>Sample "posts list"</h3>
 
 <ul class="posts">
   {% for post in site.posts %}
