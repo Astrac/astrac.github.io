@@ -1,6 +1,6 @@
-# Alfredo Torre's devlog 
+# A Clean Jekyll Bootstrap (v. 3.1.0) distribution
 
-This repo is the default weblog hosted via Github Pages and Jekyll.
+Just do a `git clone -b clean REPO` to use this fresh installation of Jekyll Bootstrap.
 
 ### What is Jekyll?
 
