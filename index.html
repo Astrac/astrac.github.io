@@ -1,3 +1,16 @@
 ---
 layout: index
+title: Aldo Stracquadanio
+tagline: A programming weblog
 ---
+{% include JB/setup %}
+
+{% for post in site.posts %}
+  <div class="panel panel-default">
+    <div class="panel-heading">{{ post.date | date_to_string }} - {{ post.title }}</div>
+    <div class="panel-body">
+      {{ post.excerpt }}
+      <a href="{{ post.url }}">See full post</a>
+    </div>
+  </div>
+{% endfor %}
