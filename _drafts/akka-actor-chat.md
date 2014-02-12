@@ -4,11 +4,12 @@ category : coding
 title: "Simple chat on Akka Actors"
 tagline: "Having fun at the Hack The Tower in London"
 tags : [Scala, Akka, Distributed systems, Hackatons]
-excerpt: "How we built an IRC-like chat system networking Akka Actors"
 ---
 {% include JB/setup %}
 
 The past Saturday I've been attending the Hack The Tower in London Salesforce office. The format is basically the one of an hackaton where people coming from different technology user groups (namely Scala, Java and Clojure) meet and have fun for one day in the nice setting of the Heron Tower in the centre of the City of London. It was the second time for me to attend this event, I will probably speak about the first one in another post, and I joined the group of people that was there to work on Scala.
+
+@@@@@@@@@@@
 
 ### The project
 
