@@ -1,6 +1,6 @@
 ---
 layout: post
-category : coding
+category : Coding
 title: "Simple chat on Akka Actors"
 tagline: "Having fun at the Hack The Tower in London"
 tags : [Scala, Akka, Distributed systems, Hackatons]
@@ -9,7 +9,7 @@ tags : [Scala, Akka, Distributed systems, Hackatons]
 
 The past Saturday I've been attending the Hack The Tower in London Salesforce office. The format is basically the one of an hackaton where people coming from different technology user groups (namely Scala, Java and Clojure) meet and have fun for one day in the nice setting of the Heron Tower in the centre of the City of London. It was the second time for me to attend this event, I will probably speak about the first one in another post, and I joined the group of people that was there to work on Scala.
 
-@@@@@@@@@@@
+[//]: <> (@@@@@@@@@@@)
 
 ### The project
 
@@ -140,10 +140,10 @@ There are some naive assumptions in all this system (e.g. the client identity be
 
 It often happens that while hacking on something some more ideas pop out of the blue and this is the case for some of our "unsolved issues" of the day. This was the case as well and there are a couple of things that I have been thinking of during the last days and that may be part of some future hacking and exploration:
 
+* Deploying on Heroku an Akka actor system
 * Basic setup for an Akka cluster
 * Using UPnP to set up an Akka cluster
 * Retrieve the publicly available IP address that makes the host machine reachable by a remote server
-
 
 ### References
 
