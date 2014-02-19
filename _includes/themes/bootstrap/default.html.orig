@@ -9,11 +9,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="{{ ASSET_PATH }}/resources/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<<<<<<< HEAD
+=======
     <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
     <link href="{{ ASSET_PATH }}/css/syntax-monokai-light.css" rel="stylesheet">
+>>>>>>> 9e4a788... Added Monokai theme for syntax highlighting
     <link href="{{ ASSET_PATH }}/css/style.css" rel="stylesheet">
-    <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
-
+  
     <!--[if lt IE 9]>
       <script src="{{ ASSET_PATH }}/resources/respond/Respond.min.js"></script>
     <![endif]-->
@@ -47,6 +49,7 @@
     </nav>
     <div class="container">
       {{ content }}
+      <!-- <hr> -->
       <footer>
         <p>
           &copy; {{ site.time | date: '%Y' }} {{ site.author.name }}

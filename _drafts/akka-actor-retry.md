@@ -93,11 +93,11 @@ One common thing that actors using the ask pattern want to do is sending the rec
     // f is a Future of some value that needs to be sent to targetActor
     f.pipeTo(targetActor)
 
-Going back to where we started from, all of this is really nice but what can we do to use this pattern in a scenario where we have faulty communication between actors? In a distributed system it could be quite easy the case that actors may not be able to reach each other over the network and a resilient system should provide some kind of tolerance for transient issues. What I found useful when solving such a problem during the Reactive Programming course on Coursera was to make an extension to `ActorRef` to provide one more method: `askretry`
+Going back to where we started from, all of this is really nice but what can we do to use this pattern in a scenario where we have faulty communication between actors? In a distributed system it could be quite easy the case that actors may not be able to reach each other over the network and a resilient system should implement some kind of strategy to mitigate transient issues. What I found useful when solving such a problem during the Reactive Programming course on Coursera was to make an extension to `ActorRef` to provide one more method which I named `askretry`.
 
 ## AskRetry
 
-The purpose of this solution is to specify a number and a rate for attempts that have to be done to deliver a message and get a response. The method signature is as follows:
+The purpose of this method is to specify a number and a rate for attempts that have to be done to deliver a message and get a response. The method signature is as follows:
 
     def askretry[T](
       msg: T, maxAttempts: Int, rate: FiniteDuration)(implicit context: ActorContext): Future[Any]
@@ -106,4 +106,4 @@ The usage is as follows:
 
     val f = calculatorRef.askretry(Calculate(id, x, y), 10, 200.millis).mapTo[Result]
 
-
+The code for this snippet is available on [this repository](https://github.com/Astrac/akka-askretry). If after 10 tries performed every 200 milliseconds if no answer is received the future returned will fail with a `AskTimeoutException` as in the case of a normal `ask` call. This is achieved by spawning a very small actor that will perform the requests and forward the response to the asking actor.
