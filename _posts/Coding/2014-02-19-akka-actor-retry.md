@@ -96,7 +96,7 @@ f.onComplete {
 }
 {% endhighlight %}
 
-The response is received in the same part of the actor code that sends the message and it makes everything more clear about what is going on. There is a very important catch in dealing with futures within an actor: *never mutate any internal state of the actor from within a future*. This deserves the first prize as "the most common source of headaches when debugging actor software". The reason for this is that when you are in the body of a future you are in a different thread than the one that is running the actor itself and access to actor state has all the usual problems of concurrent access has. Accessing local variables is fine instead, and the future's content is the response message coming from the ask request. It is also worth noting that the `CalculatorActor` is not aware of this and we do not need to make any change on it.
+The response is received in the same part of the actor code that sends the message and it makes everything more clear about what is going on. There is a very important catch in dealing with futures within an actor: *never mutate any internal state of the actor from within a future*. This deserves the first prize as *the most common source of headaches when debugging actor software*. The reason for this is that when you are in the body of a future you are in a different thread than the one that is running the actor itself and access to actor state has all the usual problems that concurrent access has. Accessing local variables is fine instead, and the future's content is the response message coming from the ask request. It is also worth noting that the `CalculatorActor` is not aware of this and we do not need to make any change on it.
 
 One common thing that actors using the ask pattern want to do is sending the received response to another actor. For this Akka provides another pattern that is *pipe*. It is not really relevant to what I've done but I think it is quite interesting to know it and it is definitely useful. To send the result of a future to an actor the proper way of doing it is:
 
@@ -124,7 +124,7 @@ The usage is as follows:
     val f = calculatorRef.askretry(Calculate(id, x, y), 10, 200.millis).mapTo[Result]
 {% endhighlight %}
 
-The code for this snippet is available on [this repository](https://github.com/Astrac/akka-askretry). If after 10 tries performed every 200 milliseconds if no answer is received the future returned will fail with a `AskTimeoutException` as in the case of a normal `ask` call. This is achieved by spawning a very small actor that will perform the requests and forward the response to the asking actor. This actor reads as follows:
+The code for this snippet is available on [this repository](https://github.com/Astrac/akka-askretry). If after 10 tries performed every 200 milliseconds if no answer is received the future returned will fail with a `AskTimeoutException` as in the case of a normal `ask` call. This is achieved by spawning a very small actor that will perform the requests and forward the response to the asking actor; actors are indeed pretty lightweight, so this doesn't introduce a noticeable performance issue in most cases. The `RetryingActor` reads as follows:
 
 {% highlight scala %}
 /**
