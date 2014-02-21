@@ -18,6 +18,8 @@ It's amazing how, given an initial state with some living cells, these four simp
 
 [//]: <> (@@@@@@@@@@@)
 
+### Data types
+
 All the simulation functions will be contained in a Scala `object` named `LifeSym`; this is the definition of our basic data types:
 
 {% highlight scala %}
@@ -47,6 +49,8 @@ The `board` function accepts a variable number of `Cell` parameters, which makes
 val b = board(cell(1, 2), cell(1, 3), cell(1, 4))
 {% endhighlight %}
 
+### Basic board/cell functions
+
 The rules of the game depend very much on the neighbourhood of a cell, so there should be a function that tells us given a cell what are its living neighbours and if two cells are neighbours; to determine these two things is needed in turn a function to get the neighbouring coordinates of a cell, i.e. the points that have 1 of distance between any x and/or y. The signatures of this functions could be as follows:
 
 {% highlight scala %}
@@ -56,6 +60,7 @@ object LifeSym {
     x <- -1 to 1
     y <- -1 to 1
   } yield (x, y)).toSet - ((0, 0))
+
   def neighbourCoordinates(c: Cell): Set[Cell] = ???
   def areNeighbours(c1: Cell, c2: Cell): Boolean = ???
   def livingNeighbours(b: Board, c: Cell): Set[Cell] = ???
@@ -63,4 +68,54 @@ object LifeSym {
 }
 {% endhighlight %}
 
-The only implemented property is `neighbourOffsets`, which is
+#### Missing implementations
+
+The `???` is a special value defined in the standard Scala library; it is defined as follows:
+
+{% highlight scala %}
+def ???: Nothing = throw new NotImplementedError
+{% endhighlight %}
+
+This is a place-holder commonly used when stubbing out ideas. Its type is `Nothing` that in Scala is the type that is descendant of any other type (as `Any` is the ancestor of any other type) so it will type-check in almost any situation, it doesn't have any instance and is the type returned by throwing an exception. Hitting a `???` at runtime will result in an error saying that an implementation is missing.
+
+#### About the neighbour offsets generation
+
+The only implemented property in the above functions is `neighbourOffsets`, which is a `Set` containing all the pairs having x and y within the [[-1, 1]] range except when they are both equal to 0; it is constructed using for comprehension and removing the (0, 0) pair from the generated set. The need for double parenthesis may not be clear for people new to Scala so it probably deserves a bit of explanation: what happens is that in Scala all the operators are actually methods defined as a normal method would be defined; syntactic sugar makes it possible to use them (as well as normal methods) without the `.` and *without parenthesis*.
+
+This means is that when you write somewhere:
+
+{% highlight scala %}
+val x = 2 + 2
+{% endhighlight %}
+
+Scala actually translates it to:
+
+{% highlight scala %}
+val x = 2.+(2)
+{% endhighlight %}
+
+If we used only one set of parenthesis as in:
+
+{% highlight scala %}
+val mySet: Set[(Int, Int)] = ...
+mySet - (0, 0)
+{% endhighlight %}
+
+This would be translated to:
+
+{% highlight scala %}
+val mySet: Set[(Int, Int)] = ...
+mySet.-(0, 0)
+{% endhighlight %}
+
+The parenthesis would be assumed to belong to the method invocation and not to a tuple constructor and the compiler would complain that it doesn't know how to apply the `-` function of `Set[(Int, Int)]` to two integer parameters as it expects a single pair of integers instead. With two set of parenthesis instead the compiler can correctly translate the invocation as follows:
+
+{% highlight scala %}
+val mySet: Set[(Int, Int)] = ...
+mySet.-((0, 0))
+{% endhighlight %}
+
+Which type checks fine and is what we actually meant.
+
+### First iteration of tests
+
