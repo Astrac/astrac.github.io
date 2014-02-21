@@ -7,7 +7,9 @@ tags : [Scala, Akka, Distributed systems, Hackatons]
 ---
 {% include JB/setup %}
 
-In this series of articles I want to talk about how to build the popular [Conway's game of life](http://en.wikipedia.org/wiki/Conway's_Game_of_Life) in Scala with a *functional* and *test-driven* approach. The game of life is an example of cellular automata in which the universe is a board divided in cells that can be alive or dead; at each generation of the simulation the board evolves to a new status, some cells dye, other cells live on and other get born following four simple rules:
+In this series of articles I want to talk about how to build the popular [Conway's game of life](http://en.wikipedia.org/wiki/Conway's_Game_of_Life) in Scala with a *functional* and *test-driven* approach. We did this with the London Scala User Group during an Hack The Tower event and it was a really fun way to get people involved in Scala and to see some TDD in action.
+
+The game of life is an example of cellular automata in which the universe is a board divided in cells that can be alive or dead; at each generation of the simulation the board evolves to a new status, some cells dye, other cells live on and other get born following four simple rules:
 
 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
 2. Any live cell with two or three live neighbours lives on to the next generation.
@@ -118,4 +120,17 @@ mySet.-((0, 0))
 Which type checks fine and is what we actually meant.
 
 ### First iteration of tests
+
+We drafted our functions, it's time to write some tests for how we expect them to work. Doing this we will be able to quickly implement and validate them as well as be sure that the functionality remain the same if later we (or someone else) will decide to change something and the tests will also work as a basic runnable documentation for the API. We are going to use ScalaTest version 2.0, to get started we'll have:
+
+{% highlight scala %}
+import org.scalatest._
+
+class BoardTest extends FunSpec with Matchers {
+
+  import LifeSym._
+
+  // ...
+}
+{% endhighlight %}
 
