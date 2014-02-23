@@ -2,8 +2,8 @@
 layout: post
 category : Coding
 title: "Test driven game of life - Part 1"
-tagline: "How to build the Conway's game of life functionally with TDD"
-tags : [Scala, Akka, Distributed systems, Hackatons]
+tagline: "Building the Conway's game of life functionally and TDD-style"
+tags : [Scala, TDD]
 ---
 {% include JB/setup %}
 
