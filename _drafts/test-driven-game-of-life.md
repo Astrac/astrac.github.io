@@ -119,14 +119,14 @@ mySet.-((0, 0))
 
 Which type checks fine and is what we actually meant.
 
-### First iteration of tests
+#### First iteration of tests
 
-We drafted our functions, it's time to write some tests for how we expect them to work. Doing this we will be able to quickly implement and validate them as well as be sure that the functionality remain the same if later we (or someone else) will decide to change something and the tests will also work as a basic runnable documentation for the API. We are going to use ScalaTest version 2.0, to get started we'll have:
+We drafted our functions, it's time to write some tests for how we expect them to work. Doing this we will be able to quickly implement and validate them as well as be sure that the functionality remain the same if later we (or someone else) will decide to change something and the tests will also work as a basic runnable documentation for the API. We are going to use [ScalaTest](http://www.scalatest.org/) version 2.0, to get started we'll have to define the test class as follows:
 
 {% highlight scala %}
 import org.scalatest._
 
-class BoardTest extends FunSpec with Matchers {
+class LifeSymTest extends FunSpec with Matchers {
 
   import LifeSym._
 
@@ -134,3 +134,146 @@ class BoardTest extends FunSpec with Matchers {
 }
 {% endhighlight %}
 
+ScalaTest is a test framework that [supports many styles](http://www.scalatest.org/user_guide/selecting_a_style), from unit testing to more BDD-like approach. In this case I'm going to use an approach that is in between Unit testing and BDD, so I extend the `FunSpec` class and mix in the `Matchers` trait to use the nice DSL that it provides for defining expectations. Let's start writing our unit tests into the test suite defined above:
+
+{% highlight scala %}
+describe("LifeSym") {
+  it("should correctly identify neighbouring coordinates") {
+    neighbourCoordinates(cell(1, 1)) should equal(
+      Set(cell(0, 0), cell(0, 1), cell(0, 2), cell(1, 0),
+        cell(1, 2), cell(2, 0), cell(2, 1), cell(2, 2)))
+  }
+
+  it("should correctly tell if two cells are neighbours or not") {
+    areNeighbours(cell(2, 3), cell(4, 5)) should be (false)
+    neighbourCoordinates(cell(4, 5)) foreach {
+      c => areNeighbours(c, cell(4, 5)) should be (true)
+    }
+  }
+
+  it("should produce a list of living neighbours of a cell") {
+    val simpleBoard = board(cell(2, 3), cell(4, 5), cell(5, 6))
+    livingNeighbours(simpleBoard, cell(2, 3)) should be (empty)
+    livingNeighbours(simpleBoard, cell(4, 5)) should equal(Set(cell(5, 6)))
+    livingNeighbours(simpleBoard, cell(5, 6)) should equal(Set(cell(4, 5)))
+  }
+  // ...
+}
+{% endhighlight %}
+
+Looking at this code it is possible to appreciate how the Scala language puts some emphasis on being able to write nice domain specific languages within itself by using the richness of its syntax and abstractions. The `describe` and `it` nesting is provided by the `FunSpec` class while `should`, `be`, `equal` and `empty` are provided by the powerful `Matchers` trait.
+
+In a real-world scenario you may probably want to write more test cases for each functions, but what we have here cover the basics of what these functions should provide us. If we run the tests now this is what we will see:
+
+```
+[info] LifeSymTest:
+[info] LifeSym
+[info] - should correctly identify neighbouring coordinates *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info] - should correctly tell if two cells are neighbours or not *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info] - should produce a list of living neighbours of a cell *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info] ScalaTest
+[info] Run completed in 1 second, 585 milliseconds.
+[info] Total number of tests run: 3
+[info] Suites: completed 1, aborted 0
+[info] Tests: succeeded 0, failed 3, canceled 0, ignored 0, pending 0
+[info] *** 3 TESTS FAILED ***
+[error] Failed: Total 3, Failed 3, Errors 0, Passed 0
+[error] Failed tests:
+[error]   org.lsug.restlife.test.LifeSymTest
+[error] (test:test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 2 s, completed 23-Feb-2014 18:05:13
+```
+
+The actual output will contain also stack traces, I removed them as they are not really important at the moment. What the output tells us is which tests failed and a bit of useful information. We will now implement the functions and try to get our tests passing. It is a fun and useful exercise to *get the bar green* when playing with a pet project as we are doing now; in the real world, in a big software that needs to be maintained for a long time by many people, this approach has also many other advantages:
+
+* It is way quicker to run a suite of tests rather than checking things manually
+* The tests will be run in CI, ideally before merging topic branches, thus catching breaking changes before they make it into a release.
+* Tests will help refactoring parts of the system when they become old as even not knowing all the details you can validate your work quickly by running them.
+* If written in a good way tests will work as a *living documentation* of the code base.
+
+#### Implementing the functions
+
+The `neighbourCoordinates` function should get the neighbouring offsets that we defined above and apply each of them to the given cell to produce a new set of coordinates. In Scala, when we want to produce a new collection starting from one we have and applying some transformation we are most likely looking at a use case for the `map` function:
+
+{% highlight scala %}
+def neighbourCoordinates(c: Cell): Set[Cell] = neighbourOffsets.map { case (ofX, ofY) => cell(x(c) + ofX, y(c) + ofY) }
+{% endhighlight %}
+
+The `map` function is defined for many *container types* (e.g. collections, Option, Future) and for a fictional `Container` type is defined as follows:
+
+{% highlight scala %}
+trait Container[T] {
+  def map[U](f: T => U): Container[U]
+}
+{% endhighlight %}
+
+The Scala collection `map` actually has a slightly more complex signature, but for most practical purposes this is the one you should think about. The function applies a provided function from `T` (the type inside the container) to a type `U` and returns a new container of `U`. In our case both `T` and `U` are equal to `Cell` and the container type is `Set`. The `case` statement used as the parameters part of a closure is a way to de-construct the pair of offset coordinates into its two components. The function body creates a new cell whose coordinates are taken from the given cell plus the given offsets. In Java or any imperative language this could've been written as:
+
+{% highlight java %}
+public Set<Cell> neighbourCoordinates(Cell cell) {
+  Set<Cell> newSet = new Set<Cell>();
+
+  for (Cell c : neighbourOffsets) {
+    newSet.add(new Cell(cell.getX() + c.getX(), cell.getY() + c.getY()));
+  }
+
+  return newSet;
+}
+{% endhighlight %}
+
+Lots of ceremonies for a very simple task. Higher order functions as `map` are one of the most powerful tools in the toolbox of a functional developer. Let's give a run to tests to see if we did everything right:
+
+```
+[info] LifeSymTest:
+[info] LifeSym
+[info] - should correctly identify neighbouring coordinates
+[info] - should correctly tell if two cells are neighbours or not *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info]   at scala.Predef$.$qmark$qmark$qmark(Predef.scala:252)
+[info] - should produce a list of living neighbours of a cell *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info] ScalaTest
+[info] Run completed in 1 second, 462 milliseconds.
+[info] Total number of tests run: 3
+[info] Suites: completed 1, aborted 0
+[info] Tests: succeeded 1, failed 2, canceled 0, ignored 0, pending 0
+[info] *** 2 TESTS FAILED ***
+[error] Failed: Total 3, Failed 2, Errors 0, Passed 1
+[error] Failed tests:
+[error]   org.lsug.restlife.test.LifeSymTest
+[error] (test:test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 2 s, completed 23-Feb-2014 18:37:03
+```
+
+The test we designed for the first function is passing! We can then implement the other functions as follows:
+
+{% highlight scala %}
+def areNeighbours(c1: Cell, c2: Cell): Boolean = neighbourCoordinates(c1).contains(c2)
+
+def livingNeighbours(b: Board, c: Cell): Set[Cell] = b.filter(other => areNeighbours(c, other))
+{% endhighlight %}
+
+So `areNeighbours` is using the neighbouring coordinates set of the first given cell to check if it contains the second cell; `livingNeighbours` is instead using the `areNeighbours` function to filter the board and retain only the cells that are neighbours of the provided one. The `filter` function is as `map` a powerful tool that allow to express in a very concise way things that in an imperative language would take explicitly iterating over a loop in a rather verbose way.
+
+Running our tests now this is the output:
+
+```
+[info] LifeSymTest:
+[info] LifeSym
+[info] - should correctly identify neighbouring coordinates
+[info] - should correctly tell if two cells are neighbours or not
+[info] - should produce a list of living neighbours of a cell
+[info] ScalaTest
+[info] Run completed in 1 second, 276 milliseconds.
+[info] Total number of tests run: 3
+[info] Suites: completed 1, aborted 0
+[info] Tests: succeeded 3, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[info] Passed: Total 3, Failed 0, Errors 0, Passed 3
+[success] Total time: 1 s, completed 23-Feb-2014 18:42:24
+```
+
+Everything works as expected, our tests are passing, we can now re-iterate to build the functions that will actually do the simulation on top of our results.
