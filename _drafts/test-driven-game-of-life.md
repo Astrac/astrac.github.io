@@ -1,8 +1,8 @@
 ---
 layout: post
 category : Coding
-title: "Test driven game of life - Part 1"
-tagline: "Building the Conway's game of life functionally and TDD-style"
+title: "TDD game of life in Scala - Part 1"
+tagline: "Exploring TDD and basic Scala functionalities by implementing the Conway's game of life"
 tags : [Scala, TDD]
 ---
 {% include JB/setup %}
@@ -51,9 +51,9 @@ The `board` function accepts a variable number of `Cell` parameters, which makes
 val b = board(cell(1, 2), cell(1, 3), cell(1, 4))
 {% endhighlight %}
 
-### Basic board/cell functions
+### Drafting a solution
 
-The rules of the game depend very much on the neighbourhood of a cell, so there should be a function that tells us given a cell what are its living neighbours and if two cells are neighbours; to determine these two things is needed in turn a function to get the neighbouring coordinates of a cell, i.e. the points that have 1 of distance between any x and/or y. The signatures of this functions could be as follows:
+The rules of the game depend very much on the neighbourhood of a cell, so there should be a function that tells us given a cell what are its living neighbours and if two cells are neighbours; to determine these two things is needed in turn a function to get the neighbouring coordinates of a cell, i.e. the points that have 1 of distance between any x and/or y. Once we have this building blocks we can write a function that creates the next generation for a given board and the function that calculates the evolution of a board over multiple steps. The signatures of this functions could be as follows:
 
 {% highlight scala %}
 object LifeSym {
@@ -66,7 +66,8 @@ object LifeSym {
   def neighbourCoordinates(c: Cell): Set[Cell] = ???
   def areNeighbours(c1: Cell, c2: Cell): Boolean = ???
   def livingNeighbours(b: Board, c: Cell): Set[Cell] = ???
-  // ...
+  def nextGeneration(b: Board): Board = ???
+  def sym(b: Board, steps: Int): List[Board] = ???
 }
 {% endhighlight %}
 
@@ -80,7 +81,7 @@ def ???: Nothing = throw new NotImplementedError
 
 This is a place-holder commonly used when stubbing out ideas. Its type is `Nothing` that in Scala is the type that is descendant of any other type (as `Any` is the ancestor of any other type) so it will type-check in almost any situation, it doesn't have any instance and is the type returned by throwing an exception. Hitting a `???` at runtime will result in an error saying that an implementation is missing.
 
-#### About the neighbour offsets generation
+#### Neighbour offsets generation
 
 The only implemented property in the above functions is `neighbourOffsets`, which is a `Set` containing all the pairs having x and y within the [[-1, 1]] range except when they are both equal to 0; it is constructed using for comprehension and removing the (0, 0) pair from the generated set. The need for double parenthesis may not be clear for people new to Scala so it probably deserves a bit of explanation: what happens is that in Scala all the operators are actually methods defined as a normal method would be defined; syntactic sugar makes it possible to use them (as well as normal methods) without the `.` and *without parenthesis*.
 
@@ -119,7 +120,7 @@ mySet.-((0, 0))
 
 Which type checks fine and is what we actually meant.
 
-#### First iteration of tests
+#### Going TDD - The utility functions
 
 We drafted our functions, it's time to write some tests for how we expect them to work. Doing this we will be able to quickly implement and validate them as well as be sure that the functionality remain the same if later we (or someone else) will decide to change something and the tests will also work as a basic runnable documentation for the API. We are going to use [ScalaTest](http://www.scalatest.org/) version 2.0, to get started we'll have to define the test class as follows:
 
@@ -134,7 +135,7 @@ class LifeSymTest extends FunSpec with Matchers {
 }
 {% endhighlight %}
 
-ScalaTest is a test framework that [supports many styles](http://www.scalatest.org/user_guide/selecting_a_style), from unit testing to more BDD-like approach. In this case I'm going to use an approach that is in between Unit testing and BDD, so I extend the `FunSpec` class and mix in the `Matchers` trait to use the nice DSL that it provides for defining expectations. Let's start writing our unit tests into the test suite defined above:
+ScalaTest is a test framework that [supports many styles](http://www.scalatest.org/user_guide/selecting_a_style), from unit testing to more BDD-like approach. In this case I'm going to use an approach that is in between Unit testing and BDD, so I extend the `FunSpec` class and mix in the `Matchers` trait to use the nice DSL that it provides for defining expectations. Let's start writing our tests for the first three functions into the test suite defined above:
 
 {% highlight scala %}
 describe("LifeSym") {
@@ -163,9 +164,10 @@ describe("LifeSym") {
 
 Looking at this code it is possible to appreciate how the Scala language puts some emphasis on being able to write nice domain specific languages within itself by using the richness of its syntax and abstractions. The `describe` and `it` nesting is provided by the `FunSpec` class while `should`, `be`, `equal` and `empty` are provided by the powerful `Matchers` trait.
 
-In a real-world scenario you may probably want to write more test cases for each functions, but what we have here cover the basics of what these functions should provide us. If we run the tests now this is what we will see:
+In a real-world scenario you may probably want to write more test cases for each functions, but what we have here cover the basics of what these functions should provide us. To run the test fire an sbt shell and give the `test` command as follows:
 
 ```
+> test
 [info] LifeSymTest:
 [info] LifeSym
 [info] - should correctly identify neighbouring coordinates *** FAILED ***
@@ -227,6 +229,7 @@ public Set<Cell> neighbourCoordinates(Cell cell) {
 Lots of ceremonies for a very simple task. Higher order functions as `map` are one of the most powerful tools in the toolbox of a functional developer. Let's give a run to tests to see if we did everything right:
 
 ```
+> test
 [info] LifeSymTest:
 [info] LifeSym
 [info] - should correctly identify neighbouring coordinates
@@ -261,6 +264,7 @@ So `areNeighbours` is using the neighbouring coordinates set of the first given 
 Running our tests now this is the output:
 
 ```
+> test
 [info] LifeSymTest:
 [info] LifeSym
 [info] - should correctly identify neighbouring coordinates
@@ -276,4 +280,133 @@ Running our tests now this is the output:
 [success] Total time: 1 s, completed 23-Feb-2014 18:42:24
 ```
 
-Everything works as expected, our tests are passing, we can now re-iterate to build the functions that will actually do the simulation on top of our results.
+#### Going TDD - The generation functions
+
+Everything works as expected, our tests are passing, we can now re-iterate to build the functions that will actually do the simulation on top of our results. Let's continue on this path and let's add the tests for the remaining two functions; let's start by writing the expectations of each of the four rules of the game of life and to apply them to the `nextGeneration` function:
+
+{% highlight scala %}
+it("should kill cells having less than two neighbours") {
+  // All isolated cells
+  nextGeneration(board(cell(1, 0), cell(3, 5), cell(9, 10))) should be (empty)
+  // One neighbours cells
+  nextGeneration(board(cell(0, 0), cell(0, 1))) should be (empty)
+}
+
+it("should allow cells with two or three neighbours to survive") {
+  // (0, 1) has 2 neighbours
+  nextGeneration(board(cell(0, 0), cell(0, 1), cell(0, 2))) should contain((0, 1))
+  // (1, 1) has 3 neighbours
+  nextGeneration(board(cell(0, 0), cell(1, 1), cell(2, 2), cell(0, 2))) should contain((1, 1))
+}
+
+it("should kill cells that have more than three neighbours") {
+  val c = cell(1, 1)
+  val neighbours = LifeSym.neighbourCoordinates(c)
+
+  val boards = for {
+    i <- 4 until 9
+  } yield {
+    neighbours.take(i)
+  }
+
+  boards.foreach { b => nextGeneration(b) should not contain(c)}
+}
+
+it("should create new cells at positions with 3 alive neighbours") {
+  // A board with three cells in a corner shape
+  val b = board(cell(0, 0), cell(1, 1), cell(1, 0))
+  val evolution = nextGeneration(b)
+
+  evolution.size should equal(4)
+  evolution should equal(b + cell(0, 1))
+}
+{% endhighlight %}
+
+Now, for the final missing function, let's write a test that checks that a well-known shape, an oscillator, is correctly evolved:
+
+{% highlight scala %}
+it("should correctly evolve a 3-cells vertical oscillator") {
+  val b = board(cell(3, 2), cell(3, 3), cell(3, 4))
+  val bs = sym(b, 4)
+
+  bs should equal {
+    board(cell(2, 3), cell(3, 3), cell(4, 3)) ::
+    board(cell(3, 2), cell(3, 3), cell(3, 4)) ::
+    board(cell(2, 3), cell(3, 3), cell(4, 3)) ::
+    board(cell(3, 2), cell(3, 3), cell(3, 4)) :: Nil
+  }
+}
+{% endhighlight %}
+
+The pattern we are testing for is formed by three contiguous cells in a vertical line; this is expected to evolve by switching to horizontal and to vertical again. We are now only missing the implementations of the missing functions that can be done as follows:
+
+{% highlight scala %}
+def nextGeneration(b: Board): Board = {
+  // Create a set that contains all the cells that should survive as they have 2 or 3 living neighbours
+  val survivingCells = b.filter { c =>
+    val neighboursCount = livingNeighbours(b, c).size
+    neighboursCount == 2 || neighboursCount == 3
+  }
+
+  // Create a set that contains all the cells that should be created as they are near
+  // three living cells
+  val spawiningCells = b.flatMap(neighbourCoordinates).filter { c =>
+    !b.contains(c) && livingNeighbours(b, c).size == 3
+  }
+
+  // The next generation is the union of the above sets
+  survivingCells ++ spawiningCells
+}
+
+def sym(b: Board, steps: Int): List[Board] = {
+  // Define a tail-recursive private function that runs the evolution a given number
+  // of times and accumulate calculated states
+  @tailrec
+  def runBoard(b: Board, s: Int, states: List[Board] = Nil): List[Board] =
+    if (s == 0) states
+    else runBoard(nextGeneration(b), s - 1, b :: states)
+
+  // Use the defined function to calculate the states
+  runBoard(b, steps)
+}
+{% endhighlight %}
+
+The `sym` function is quite trivial, being just a convenience to invoke the `nextGeneration` function a given number of times accumulating the results found each time in a list of board states.
+
+The next generation function uses again the power of higher order functions to calculate the cells that should be surviving or spawning between generations. The `spawiningCells` calculation uses another powerful and very common function defined for all collections and many container types; the presence of this function in Scala is also an hint that we are probably dealing with a *monad*, which is a concept that we won't discuss in this article. The definition of the `flatMap` function for a container type could be represented as follows:
+
+{% highlight scala %}
+trait Container[T] {
+  def flatMap[U](f: T => Container[U]): Container[U]
+}
+{% endhighlight %}
+
+What this definition means is that `flatMap` will accept a function that from each element in our container creates a new container with some derived elements. All these containers will be then merged somehow to provide a single container of the target type as result. In our case we are using this function applying the `neighbourCoordinates` function as the argument, which from each cell in our board will provide a set that contains all the cells that are in its neighbourhood; when `flatMap` flattens the resulting sets all duplicates will be dropped as this is the semantic of a set. We then filter the resulting cells choosing only the non-living ones that have exactly three neighbours. Let's run the test suite to check that everything works as expected:
+
+```
+> test
+[info] LifeSymTest:
+[info] LifeSym
+[info] - should correctly identify neighbouring coordinates
+[info] - should correctly tell if two cells are neighbours or not
+[info] - should produce a list of living neighbours of a cell
+[info] - should kill cells having less than two neighbours
+[info] - should allow cells with two or three neighbours to survive
+[info] - should kill cells that have more than three neighbours
+[info] - should create new cells at positions with 3 alive neighbours
+[info] - should correctly evolve a 3-cells vertical oscillator
+[info] ScalaTest
+[info] Run completed in 1 second, 806 milliseconds.
+[info] Total number of tests run: 8
+[info] Suites: completed 1, aborted 0
+[info] Tests: succeeded 8, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+[info] Passed: Total 8, Failed 0, Errors 0, Passed 8
+[success] Total time: 2 s, completed 24-Feb-2014 23:15:59
+```
+
+All tests pass and through our TDD approach we can see that everything works as expected in a small unit without having to build an UI or having to run manually any piece of code. We have guarantees that given a board it will evolve accordingly to our expectations; if we discover later that missed anything and/or that there is a bug hidden somewhere, we will recreate it in our tests and use them as a validation step and a regression detector for our fix.
+
+### Conclusions
+
+This concludes the first part of this article. I hope that it wasn't too long, too boring or too hard to follow and that you could have a nice overview of some basic Scala features as well as the advantages in terms of efficiency and elegance of the TDD approach. If you wrote this classes you may want to have a look at the result of running them, but at the moment there is no UI on what we covered. In the next article we will build a RESTful service using [spray](http://spray.io/) and an [AngularJS](http://angularjs.org/) web client that allow to visually configure and run a simulation. A repository with all of this already working is available on [github](https://github.com/Astrac/rest-life). I will probably change something in it as I progress writing the next articles, but it works and it can give you a nice visual demonstration of what we built in this article.
