@@ -2,8 +2,8 @@
 layout: post
 category : Coding
 title: "Bootstrapping an sbt project"
-tagline: "How to install the Scala build tool and how to create a basic build"
-tags : [Scala, TDD]
+tagline: "How to create a project and run some basic commands with the Scala Build Tool"
+tags : [Scala, sbt]
 ---
 {% include JB/setup %}
 
