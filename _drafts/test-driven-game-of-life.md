@@ -2,14 +2,14 @@
 layout: post
 category : Coding
 title: "TDD game of life in Scala - Part 1"
-tagline: "Exploring TDD and basic Scala functionalities by implementing the Conway's game of life"
+tagline: "Exploring TDD and basic Scala programming by implementing the Conway's game of life"
 tags : [Scala, TDD]
 ---
 {% include JB/setup %}
 
-In this series of articles I want to talk about how to build the popular [Conway's game of life](http://en.wikipedia.org/wiki/Conway's_Game_of_Life) in Scala with a *functional* and *test-driven* approach. We did this with the London Scala User Group during an Hack The Tower event and it was a really fun way to get people involved in Scala and to see some TDD in action.
+In this series of articles I want to talk about how to build the popular [Conway's game of life](http://en.wikipedia.org/wiki/Conway's_Game_of_Life) in Scala with a *functional* and *test-driven* approach. We did this with the [London Scala User Group](http://www.meetup.com/london-scala/) during an [Hack The Tower](http://www.hackthetower.co.uk/) event and it was a really fun way to get people involved in Scala and to see some TDD in action.
 
-The game of life is an example of cellular automata in which the universe is a board divided in cells that can be alive or dead; at each generation of the simulation the board evolves to a new status, some cells dye, other cells live on and other get born following four simple rules:
+The game of life is an example of cellular automata in which an imaginary universe is represented by a board divided in cells that can be alive or dead; at each generation of the simulation the board evolves to a new status; some cells dye, other cells live on and other get born following four simple rules:
 
 1. Any live cell with fewer than two live neighbours dies, as if caused by under-population.
 2. Any live cell with two or three live neighbours lives on to the next generation.
