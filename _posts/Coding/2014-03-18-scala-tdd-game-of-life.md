@@ -1,9 +1,9 @@
 ---
 layout: post
 category : Coding
-title: "TDD game of life in Scala - Part 1"
-tagline: "Exploring TDD and basic Scala programming by implementing the Conway's game of life"
-tags : [Scala, TDD]
+title: "TDD game of life in Scala"
+tagline: "Exploring TDD and some basic ScalaFX and basic Scala programming by implementing the Conway's game of life"
+tags : [Scala, TDD, ScalaFX]
 ---
 {% include JB/setup %}
 
@@ -407,6 +407,147 @@ What this definition means is that `flatMap` will accept a function that from ea
 
 All tests pass and through our TDD approach we can see that everything works as expected in a small unit without having to build an UI or having to run manually any piece of code. We have guarantees that given a board it will evolve accordingly to our expectations; if we discover later that missed anything and/or that there is a bug hidden somewhere, we will recreate it in our tests and use them as a validation step and a regression detector for our fix.
 
-### Conclusions
+### Making an UI with ScalaFX
 
-This concludes the first part of this article. I hope that it wasn't too long, too boring or too hard to follow and that you could have a nice overview of some basic Scala features as well as the advantages in terms of efficiency and elegance of the TDD approach. If you wrote this classes you may want to have a look at the result of running them, but at the moment there is no UI on what we covered. In the next article we will build a RESTful service using [spray](http://spray.io/) and an [AngularJS](http://angularjs.org/) web client that allow to visually configure and run a simulation. A repository with all of this already working is available on [github](https://github.com/Astrac/rest-life). I will probably change something in it as I progress writing the next articles, but it works and it can give you a nice visual demonstration of what we built in this article.
+We will now briefly see how to introduce [ScalaFX](https://code.google.com/p/scalafx/) and write a quick & dirty UI to show the simulation. It would be possible to simply use the JavaFX framework, but the ScalaFX library wraps around it to provide a more convenient Scala-like API. To introduce it we will need to do some changes to the build file:
+
+{% highlight scala %}
+import sbt._
+import Keys._
+
+object AutomataBuild extends Build {
+  lazy val scalaFx = "org.scalafx" % "scalafx_2.10" % "1.0.0-M7"
+  lazy val scalaTest = "org.scalatest" % "scalatest_2.10" % "2.0" % "test"
+
+  // ScalaFX
+  lazy val scalaFxSettings = Seq(
+    unmanagedJars in Compile += Attributed.blank(
+      file(System.getenv("JAVA_HOME") + "/jre/lib/jfxrt.jar")),
+    fork in run := true
+  )
+
+  lazy val lsgu_automata = Project(id = "lsgu-automata", base = file("./"),
+    settings = Project.defaultSettings ++ scalaFxSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        scalaTest,
+        scalaFx
+      )))
+}
+{% endhighlight %}
+
+There is a bit more of ceremony introduced due to the fact that JavaFX is part of the standard JRE distribution and it doesn't have any hosted artifact to depend on. This means that from now on to compile and run this application we will need to have the environment variable JAVA_HOME set to the JRE path. On my Fedora installation this boils down to executing this shell command before running sbt:
+
+```
+$ export JAVA_HOME=/usr/java/latest/
+```
+
+Once this is done we can write the following code to display a board that can interact with mouse events and a button to start/stop the simulation:
+
+{% highlight scala %}
+// Some imports...
+
+object LifeApp extends JFXApp {
+  // Whether or not we are running a simulation at the moment
+  val running = new SimpleBooleanProperty()
+  // Last time a new frame has been rendered
+  var lastTime = 0L
+
+  // The timer object that will be used to update the board during the simulation
+  val timer = AnimationTimer { now: Long =>
+    // Push a new frame every 200 ms
+    if (now - lastTime >= 200000000) {
+      setBoard(LifeSym.nextGeneration(board))
+      lastTime = now
+    }
+  }
+
+  // A button to allow starting/stopping the simulation
+  val startStopButton = new Button("Start") {
+    // Conditional binding of ScalaFX properties
+    text <== when(running) choose "Stop" otherwise "Start"
+    // Handler for the button press event
+    onAction = (p1: ActionEvent) => {
+      running() = !running()
+      if (running()) {
+        timer.start()
+      } else {
+        timer.stop()
+      }
+    }
+  }
+
+  // Class that represents a cell in the UI at the given board coordinates
+  class Cell(val rx: Int, val ry: Int) extends Rectangle {
+    // Whether or not the cell is alive
+    val alive = new SimpleBooleanProperty()
+
+    // A setter for the alive property
+    def alive_=(v: Boolean) { alive() = v }
+
+    // If the simulation is not running switch the status of the cell on click
+    onMouseClicked = (p1: MouseEvent) => if (!running()) { alive() = !alive() }
+
+    // Positioning and sizing properties
+    x = rx * 10
+    y = ry * 10
+    width = 8
+    height = 8
+
+    // Nice rounded corners
+    arcWidth = 2
+    arcHeight = 2
+
+    // Conditional property binding for the cell background colour
+    fill <== when (hover && running.not()) choose Color.gray(0.6) otherwise (when (alive) choose Color.gray(0.9) otherwise Color.gray(0.1))
+  }
+
+  // Create a new cell instance with the given board coordinates and the given status
+  def cell(rx: Int, ry: Int, a: Boolean = false) = new Cell(rx, ry) {
+    alive() = a
+  }
+
+  // Initialise a 100x70 UI-board of dead cells
+  val cells = for {
+    rx <- 0 to 100
+    ry <- 0 to 70
+  } yield cell(rx, ry, false)
+
+  // Creates a logical board from the current UI-board state
+  def board: Board = cells.filter(_.alive()).map(c => LifeSym.cell(c.rx, c.ry)).toSet
+
+  // Updates the UI-board cells' status with the given logical board
+  def setBoard(b: Board): Unit = {
+    cells.foreach(c => c.alive() = b.contains(LifeSym.cell(c.rx, c.ry)))
+  }
+
+  // Initialise the UI
+  stage = new PrimaryStage {
+    scene = new Scene {
+      root = new BorderPane {
+        fill = Color.gray(0)
+        center = new AnchorPane {
+          content = cells
+        }
+        bottom = new BorderPane {
+          padding = Insets(5)
+          center = startStopButton
+        }
+      }
+    }
+  }
+}
+{% endhighlight %}
+
+The code is commented and I'm not going to explain everything as this article would grow too much if I go delving into the details of ScalaFX. Moreover this was the first time I used it as well and I wouldn't probably be accurate. To run the application, given that you have set your `JAVA_HOME` directory in a correct way, you just execute from the sbt session the command:
+
+```
+run
+```
+
+Have fun!
+
+# Conclusions
+
+This closes this small journey in the land of Scala and TDD. You can find the full annotated source code in [this repository](https://github.com/Astrac/rest-life).
+
+There is much more to say, we barely scratched the surface of TDD and of the various libraries we used. As an example I'd really like to be gather a better understanding of ScalaFX and to find a good way to write tests for the UI code; maybe I will do something about it and I will dig a bit deeper in another article.
