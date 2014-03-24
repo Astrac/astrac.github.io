@@ -182,7 +182,7 @@ object HelloWorldBuild extends Build {
 
   lazy val jfiglet = "com.github.lalyos" % "jfiglet" % "0.0.1"
 
-  lazy val scalaTest = "org.scalatest" % "scalatest_2.10" % "2.0" % "test"
+  lazy val scalaTest = "org.scalatest" %% "scalatest" % "2.0" % "test"
 
   lazy val helloWorldSettings = Project.defaultSettings ++ Seq(
     libraryDependencies ++= Seq(jfiglet, scalaTest)
